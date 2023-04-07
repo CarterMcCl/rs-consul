@@ -1087,6 +1087,7 @@ mod tests {
             service: "node".to_string(),
             address: "2.2.2.2".to_string(),
             port: 32,
+            meta: None
         };
 
         let empty_service = Service {
@@ -1094,6 +1095,7 @@ mod tests {
             service: "".to_string(),
             address: "".to_string(),
             port: 32,
+            meta: None
         };
 
         let sn = ServiceNode {
