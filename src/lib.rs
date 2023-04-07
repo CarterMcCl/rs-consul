@@ -491,6 +491,38 @@ impl Consul {
         })
     }
 
+    /// Returns detailed list of service nodes pertaining to a specific service
+    /// See the [consul docs](https://developer.hashicorp.com/consul/api-docs/catalog#list-nodes-for-service) for more information
+    pub async fn list_service_nodes(
+        &self,
+        query_opts: Option<QueryOptions>,
+        service_name: &str
+    ) -> Result<ResponseMeta<Vec<String>>> {
+        let mut uri = format!("{}/v1/catalog/service/{}", self.config.address, service_name);
+        let query_opts = query_opts.unwrap_or_default();
+        add_query_option_params(&mut uri, &query_opts, '?');
+
+        let request = hyper::Request::builder()
+            .method(Method::GET)
+            .uri(uri.clone());
+        let (mut response_body, index) = self
+            .execute_request(
+                request,
+                hyper::Body::empty(),
+                query_opts.timeout,
+                GET_ALL_REGISTERED_SERVICE_NAMES_METHOD_NAME,
+            )
+            .await?;
+        let bytes = response_body.copy_to_bytes(response_body.remaining());
+        let service_tags_by_name = serde_json::from_slice::<HashMap<String, Vec<String>>>(&bytes)
+            .map_err(ConsulError::ResponseDeserializationFailed)?;
+
+        Ok(ResponseMeta {
+            response: service_tags_by_name.keys().cloned().collect(),
+            index,
+        })
+    }
+
     /// returns the nodes providing the service indicated on the path.
     /// Users can also build in support for dynamic load balancing and other features by incorporating the use of health checks.
     /// See the [consul docs](https://www.consul.io/api-docs/health#list-nodes-for-service) for more information.
@@ -1087,6 +1119,7 @@ mod tests {
             service: "node".to_string(),
             address: "2.2.2.2".to_string(),
             port: 32,
+            meta: None
         };
 
         let empty_service = Service {
@@ -1094,6 +1127,7 @@ mod tests {
             service: "".to_string(),
             address: "".to_string(),
             port: 32,
+            meta: None
         };
 
         let sn = ServiceNode {

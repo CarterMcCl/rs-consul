@@ -432,6 +432,8 @@ pub struct Service {
     pub address: String,
     /// The port of the instance.
     pub port: u16,
+    /// Metadata attached to the service.
+    pub meta: Option<HashMap<String, String>>
 }
 
 pub(crate) fn serialize_duration_as_string<S>(
